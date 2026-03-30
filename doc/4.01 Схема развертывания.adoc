@@ -1,1 +1,7 @@
 === Схема развертывания
+
+image::deploymentViewDev.png[]
+
+image::deploymentViewStage.png[]
+
+image::deploymentViewProd.png[]

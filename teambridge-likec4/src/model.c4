@@ -117,6 +117,9 @@ model {
     victoria_metrics = system_ext 'VictoriaMetrics'
     vault = system_ext 'Vault'
 
+    log_storage = system_ext 'Log Storage'
+    trace_storage = system_ext 'Trace Storage'
+
     TB.api_gateway -> keycloak 'OIDC / JWT'
     keycloak -> ldap 'user federation'
   }

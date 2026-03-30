@@ -126,4 +126,42 @@ specification {
       shape rectangle
     }
   }
+
+  deploymentNode environment {
+    notation "Кластер development, stage, ..."
+    style {
+      color sky
+    }
+  }
+    
+    deploymentNode zone {
+        notation 'Сетевой сегмент'
+        style {
+            color amber
+        }
+    }
+
+    deploymentNode kubernetes {
+        notation 'Кубернетес'
+        style {
+            color blue
+            icon tech:kubernetes
+        }
+    }
+
+    deploymentNode kubernetes_namespace {
+        notation 'Кубернетес Пространство имен'
+        style {
+            color green
+            icon tech:kubernetes
+        }
+    }
+
+    deploymentNode vm {
+        notation 'Виртуальная машина'
+        style {
+            color green
+        }
+    }
+
 }

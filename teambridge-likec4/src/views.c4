@@ -1,7 +1,9 @@
 views {
   view index {
     title 'TeamBridge - Landscape'
-    include *
+    include
+      *,
+      clients.*
   }
 
   view context {
@@ -26,8 +28,104 @@ views {
     include TB.kafka
     include TB.s3
     include TB.opensearch
-    include infra.*
+    include infra.keycloak
+    include infra.ldap
+    include infra.victoria_metrics
+    include infra.vault
   }
 
+  deployment view deploymentViewDev {
+    title 'Dev env deployment'
+
+    include
+      stage_zone,
+      stage_zone.*,
+      stage_zone.observability,
+      stage_zone.observability.*,
+      stage_zone.dev1,
+      stage_zone.dev1.data,
+      stage_zone.dev1.data.*,
+      stage_zone.dev1.data.kafka_cluster,
+      stage_zone.dev1.data.kafka_cluster.*,
+      stage_zone.dev1.data.keydb_cluster,
+      stage_zone.dev1.data.keydb_cluster.*,
+      stage_zone.dev1.data.postgres_cluster,
+      stage_zone.dev1.data.postgres_cluster.*,
+      stage_zone.dev1.data.opensearch_cluster,
+      stage_zone.dev1.*,
+      stage_zone.dev1.app,
+      stage_zone.dev1.app.*,
+      stage_zone.config_service.*,
+      stage_zone.keycloak,
+      stage_zone.keycloak.*,
+      stage_zone.logs.*,
+      stage_zone.vault.*,
+      
+  }
+
+  deployment view deploymentViewProd {
+    title 'Dev env deployment'
+
+    include
+      prod_zone,
+      prod_zone.*,
+      prod_zone.observability,
+      prod_zone.observability.*,
+      prod_zone.prod.data,
+      prod_zone.prod.data.*,
+      prod_zone.prod.data.kafka_cluster,
+      prod_zone.prod.data.kafka_cluster.*,
+      prod_zone.prod.data.keydb_cluster,
+      prod_zone.prod.data.keydb_cluster.*,
+      prod_zone.prod.data.postgres_cluster,
+      prod_zone.prod.data.postgres_cluster.*,
+      prod_zone.prod.data.opensearch_cluster,
+      prod_zone.prod.data.s3_cluster,
+      prod_zone.prod.data.s3_cluster.*,
+      prod_zone.prod,
+      prod_zone.prod.*,
+      prod_zone.prod.app,
+      prod_zone.prod.app.*,
+      prod_zone.keycloak,
+      prod_zone.keycloak.*,
+      prod_zone.ldap,
+      prod_zone.ldap.*,
+      prod_zone.config_service,
+      prod_zone.config_service.*,
+      prod_zone.vault,
+      prod_zone.vault.*,
+  }
+
+  deployment view deploymentViewStage {
+    title 'Stage env deployment'
+
+    include
+      stage_zone.stage.data,
+      stage_zone.stage.data.*,
+      stage_zone.stage.data.kafka_cluster,
+      stage_zone.stage.data.kafka_cluster.*,
+      stage_zone.stage.data.keydb_cluster,
+      stage_zone.stage.data.keydb_cluster.*,
+      stage_zone.stage.data.postgres_cluster,
+      stage_zone.stage.data.postgres_cluster.*,
+      stage_zone.stage.data.opensearch_cluster,
+      stage_zone.stage.data.opensearch_cluster.*,
+      stage_zone.stage.data.s3_cluster,
+      stage_zone.stage.data.s3_cluster.*,
+      stage_zone,
+      stage_zone.*,
+      stage_zone.observability,
+      stage_zone.observability.*,
+      stage_zone.stage,
+      stage_zone.stage.*,
+      stage_zone.stage.app,
+      stage_zone.stage.app.*,
+      stage_zone.keycloak,
+      stage_zone.keycloak.*,
+      stage_zone.config_service,
+      stage_zone.config_service.*,
+      stage_zone.vault,
+      stage_zone.vault.*
+  }
 }
   

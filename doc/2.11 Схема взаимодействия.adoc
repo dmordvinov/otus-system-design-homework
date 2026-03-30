@@ -2,136 +2,19 @@
 
 Ниже приведены ключевые сценарии взаимодействия компонентов TeamBridge для основных пользовательских потоков.
 
-=== Сценарий 1 - Аутентификация пользователя (SSO)
+==== Сценарий 1 - Аутентификация пользователя (SSO)
 
-[plantuml, auth-sequence, svg]
-----
-@startuml
-title TeamBridge - SSO Authentication
-autonumber
+image::UC-auth.png[]
 
-actor User
-participant "Web/Desktop/Mobile Client" as Client
-participant "API Gateway" as ApiGateway
-participant "Keycloak" as Keycloak
-participant "LDAP/AD" as LDAP
+==== Сценарий 2 - Отправка сообщения и доставка online пользователю
 
-User -> Client: Ввод учетных данных / SSO redirect
-Client -> ApiGateway: HTTPS request без access token
-ApiGateway -> Keycloak: OIDC authorize
-Keycloak -> LDAP: Проверка пользователя (federation)
-LDAP --> Keycloak: OK / Failed
-Keycloak --> ApiGateway: JWT access token + refresh token
-ApiGateway --> Client: 200 + токены
-Client --> User: Успешный вход
+image::UC-msg.png[]
 
-@enduml
-----
+==== Сценарий 3 - Fallback уведомления для offline пользователя
 
-=== Сценарий 2 - Отправка сообщения и доставка online пользователю
+image::UC-msg-offline.png[]
 
-[plantuml, send-message-sequence, svg]
-----
-@startuml
-title TeamBridge - Send Message and Realtime Delivery
-autonumber
+==== Сценарий 4 - Загрузка файла и отправка в чат
 
-actor UserA as Sender
-actor UserB as Receiver
-participant "Client A" as ClientA
-participant "WebSocket Gateway" as WSG
-participant "Chat Service" as Chat
-database "PostgreSQL" as DB
-queue "Kafka" as Kafka
-participant "WebSocket Gateway\n(consumer)" as WSGC
-participant "Client B" as ClientB
-
-Sender -> ClientA: Нажимает "Отправить"
-ClientA -> WSG: WSS sendMessage(chatId, text, clientMessageId)
-WSG -> Chat: REST/gRPC CreateMessage(command)
-Chat -> DB: INSERT message
-DB --> Chat: messageId, createdAt
-Chat -> Kafka: publish MessageCreated
-Chat --> WSG: ACK (messageId, status=accepted)
-WSG --> ClientA: delivery ack
-
-Kafka -> WSGC: MessageCreated event
-WSGC -> ClientB: WSS newMessage(messageId, chatId, text)
-ClientB --> Receiver: UI notification + unread counter
-
-@enduml
-----
-
-=== Сценарий 3 - Fallback уведомления для offline пользователя
-
-[plantuml, offline-notification-sequence, svg]
-----
-@startuml
-title TeamBridge - Offline Notification Fallback
-autonumber
-
-participant "Chat Service" as Chat
-queue "Kafka" as Kafka
-participant "Notification Service" as Notify
-database "PostgreSQL" as DB
-database "KeyDB/Redis" as Redis
-participant "Push Provider\n(APNs/FCM/WebPush)" as Push
-participant "Client B" as ClientB
-
-Chat -> Kafka: publish MessageCreated
-Kafka -> Notify: consume MessageCreated
-Notify -> Redis: check presence(userId)
-Redis --> Notify: offline / background
-Notify -> DB: read notification settings + device tokens
-DB --> Notify: policy + tokens
-Notify -> Push: send push payload (deep link, chatId)
-Push --> ClientB: push notification delivered
-ClientB -> Chat: sync unread messages after open
-
-@enduml
-----
-
-=== Сценарий 4 - Загрузка файла и отправка в чат
-
-[plantuml, file-upload-sequence, svg]
-----
-@startuml
-title TeamBridge - File Upload and Message Reference
-autonumber
-
-actor User
-participant "Client" as Client
-participant "API Gateway" as ApiGateway
-participant "File Service" as FileService
-participant "S3/Object Storage" as S3
-database "PostgreSQL" as DB
-participant "Chat Service" as Chat
-queue "Kafka" as Kafka
-
-User -> Client: Выбирает файл
-Client -> ApiGateway: POST /files (multipart)
-ApiGateway -> FileService: upload(file)
-FileService -> S3: PUT object
-S3 --> FileService: objectKey + checksum
-FileService -> DB: save metadata(fileId, ownerId, size, objectKey)
-DB --> FileService: OK
-FileService --> ApiGateway: fileId + downloadUrl
-ApiGateway --> Client: 201 Created(fileId)
-
-Client -> ApiGateway: POST /messages (text + fileId)
-ApiGateway -> Chat: CreateMessage(chatId, text, fileId)
-Chat -> DB: insert message with file reference
-Chat -> Kafka: publish MessageCreated
-Chat --> ApiGateway: 200 OK
-ApiGateway --> Client: message accepted
-
-@enduml
-----
-
-=== Нефункциональные требования к взаимодействиям
-
-* End to end latency доставки online сообщения (p95) - не более 200 мс
-* Доставка событий - как минимум `at least once`, на клиенте используется идемпотентность по `messageId`
-* Все внешние и межсервисные каналы - только TLS
-* Для retry и деградации используются backoff и ограничение повторов, чтобы избежать шторма запросов
+image::UC-fileUpload.png[]
 

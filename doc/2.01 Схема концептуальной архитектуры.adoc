@@ -1,3 +1,5 @@
 === Схема концептуальной архитектуры
 
-image::teamBridge.png[]
+image::index.png[]
+
+image::context.png[]

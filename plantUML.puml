@@ -1,0 +1,29 @@
+@startuml
+title TeamBridge - Send Message and Realtime Delivery
+autonumber
+
+actor UserA as Sender
+actor UserB as Receiver
+participant "Client A" as ClientA
+participant "WebSocket Gateway" as WSG
+participant "Chat Service" as Chat
+database "PostgreSQL" as DB
+queue "Kafka" as Kafka
+participant "WebSocket Gateway\n(consumer)" as WSGC
+participant "Client B" as ClientB
+
+Sender -> ClientA: Нажимает "Отправить"
+ClientA -> WSG: WSS sendMessage(chatId, text, clientMessageId)
+WSG -> Kafka: publish  new Message
+Chat -> Kafka: consume new Message
+Chat -> DB: store message
+DB --> Chat: messageId, createdAt
+Chat -> Kafka: publish MessageCreated
+Chat --> WSG: ACK (messageId, status=accepted)
+WSG --> ClientA: delivery ack
+
+Kafka -> WSGC: MessageCreated event
+WSGC -> ClientB: WSS newMessage(messageId, chatId, text)
+ClientB --> Receiver: UI notification + unread counter
+
+@enduml

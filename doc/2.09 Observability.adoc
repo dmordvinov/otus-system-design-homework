@@ -1,14 +1,6 @@
 === Observability
 
-Цель observability - обеспечить быстрый ответ на вопросы "что сломалось", "где деградация" и "кого это затронуло" для всех критичных пользовательских сценариев TeamBridge.
-
-Принципы::
-* Единая корреляция запросов - каждый пользовательский запрос и событие имеют `trace_id` и `request_id`
-* Три сигнала наблюдаемости - метрики, логи, трассировки
-* Измерение пользовательского опыта - отдельные SLI/SLO для REST и realtime доставки сообщений
-* Минимизация шума - алерты только на действия, требующие реакции инженера
-
-=== Объем мониторинга (что покрываем)
+==== Объем мониторинга (что покрываем)
 
 Критичные компоненты::
 * API Gateway
@@ -18,7 +10,7 @@
 * Search Service
 * Kafka
 * PostgreSQL
-* KeyDB/Redis
+* KeyDB
 * Keycloak
 
 Критичные пользовательские потоки::
@@ -28,10 +20,10 @@
 * Загрузка и чтение вложений
 * Push уведомления для offline клиентов
 
-=== Метрики (Metrics)
+==== Метрики (Metrics)
 
 Технические метрики по сервисам::
-* `http_requests_total`, `http_request_duration_ms` (p50/p95/p99), `http_5xx_rate`
+* `http_requests_total`, `http_request_duration_ms`, `http_5xx_rate`
 * `ws_active_connections`, `ws_connect_rate`, `ws_disconnect_rate`, `ws_delivery_latency_ms`
 * `consumer_lag` по Kafka consumer group, `produce_errors_total`, `consume_errors_total`
 * `db_pool_usage`, `db_query_duration_ms`, `db_deadlocks_total`
@@ -45,11 +37,11 @@
 * `search_requests_total`, `search_zero_results_rate`
 * `push_sent_total`, `push_failed_total`
 
-=== Логи (Logs)
+==== Логи (Logs)
 
 Требования к логам::
 * Структурированные JSON логи во всех сервисах
-* Обязательные поля - `timestamp`, `service`, `env`, `trace_id`, `request_id`, `user_id` (если допустимо), `chat_id`, `event_type`, `status`, `error_code`
+* Обязательные поля - `timestamp`, `service`, `trace_id`, `request_id`, `user_id` (если допустимо), `chat_id`, `event_type`, `status`, `error_code`
 * Единая схема ошибок - код, причина, классификация (`transient`/`permanent`)
 * Маскирование чувствительных данных - токены, пароли, персональные данные
 
@@ -57,7 +49,7 @@
 * Hot storage - 14 дней для оперативной диагностики
 * Warm/archive - до 90 дней для расследований и аудита
 
-=== Трассировка (Distributed Tracing)
+==== Трассировка (Distributed Tracing)
 
 Подход::
 * OpenTelemetry SDK во всех backend сервисах
@@ -66,14 +58,13 @@
 
 Основные цепочки трассировки::
 * `Client -> API Gateway -> Chat Service -> PostgreSQL -> Kafka`
-* `Kafka -> WebSocket Gateway -> Client`
 * `Client -> API Gateway -> Search Service -> OpenSearch`
 
-=== SLI и SLO
+==== SLI и SLO
 
 SLI (измеряем)::
 * Доступность REST API (`2xx/3xx`) для авторизованных запросов
-* Время ответа REST p95
+* Время ответа REST API
 * Успешность отправки сообщения
 * End-to-end latency доставки сообщения в online клиента
 * Доступность WS подключения
@@ -81,69 +72,6 @@ SLI (измеряем)::
 Целевые SLO (месячные)::
 * REST availability - >= 99.9%
 * WS availability - >= 99.9%
-* p95 REST latency - <= 300 ms
-* p95 message end-to-end latency (online) - <= 200 ms
+* REST latency - <= 300 ms
 * Message delivery success rate - >= 99.95%
-
-Error budget::
 * Для SLO 99.9% допустимый downtime - до ~43 минут в месяц
-* При исчерпании error budget - freeze нерелизных изменений и фокус на reliability work
-
-=== Алертинг и on-call
-
-Классы алертов::
-* P1 - массовая недоступность API/WS, потеря доставки сообщений, недоступность БД/брокера
-* P2 - существенная деградация latency, рост ошибок внешних интеграций, высокий consumer lag
-* P3 - предупреждения о трендах емкости (диск, память, connections)
-
-Примеры алертов::
-* `http_5xx_rate > 5%` 5 минут - P1
-* `ws_active_connections` падение > 40% за 5 минут - P1
-* `message_end_to_end_latency_ms p95 > 200 ms` 10 минут - P2
-* `kafka_consumer_lag > threshold` 10 минут - P2
-* `db_pool_usage > 90%` 10 минут - P2
-
-Каналы уведомления::
-* P1/P2 - PagerDuty/аналог + чат on-call
-* P3 - чат команды и рабочая очередь задач
-
-=== Дашборды
-
-Минимальный набор дашбордов::
-* Executive dashboard - availability, latency, error budget
-* Realtime dashboard - WS connections, delivery latency, reconnect rate
-* Messaging pipeline - Chat Service throughput, Kafka lag, consumer health
-* Storage dashboard - PostgreSQL/Redis/S3 capacity, saturation, error rate
-* Security/Auth dashboard - Keycloak login success rate, token errors
-
-=== Runbooks и инциденты
-
-Обязательные runbooks::
-* Рост 5xx в API Gateway
-* Массовые disconnect в WebSocket Gateway
-* Kafka lag и отставание доставки
-* Деградация PostgreSQL (slow queries, saturation)
-* Ошибки SSO/Keycloak
-
-Для каждого runbook фиксируются::
-* Симптомы и порог срабатывания
-* Проверки в первые 5 минут
-* Временные mitigation действия
-* Условия эскалации
-* Критерии восстановления
-
-=== Этапы внедрения
-
-Этап 1 (MVP observability)::
-* Базовые метрики, health checks, структурированные логи
-* SLI/SLO для REST и realtime
-* 5-7 ключевых алертов P1/P2
-
-Этап 2 (production hardening)::
-* Полная distributed tracing
-* Продуктовые метрики доставки и push
-* Формализация error budget процесса
-
-Этап 3 (оптимизация)::
-* Аномалийный алертинг
-* Capacity forecasting по трендам нагрузки и хранения

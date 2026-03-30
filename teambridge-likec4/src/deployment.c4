@@ -1,179 +1,216 @@
-model {
-  prod = system 'Production (DC1)' {
-    edge = system 'Edge Layer' {
-      lb = system_ext 'L4 Load Balancer'
-      ingress = container 'Ingress Controller (Nginx)'
+deployment {
+
+  stage_zone = zone 'Stage Zone' {
+
+    observability = environment 'Observability Environment' {
+      vm = instanceOf infra.victoria_metrics 'VictoriaMetrics'
+      logs = instanceOf infra.log_storage 'Log Storage'
+      traces = instanceOf infra.trace_storage 'Trace Storage'
     }
 
-    app = system 'Kubernetes Cluster - TeamBridge' {
-      api_deploy = container 'API Gateway Deployment (3-6 pods)'
-      ws_deploy = container 'WebSocket Gateway Deployment (4-8 pods)'
-      chat_deploy = container 'Chat Service Deployment (3-6 pods)'
-      search_deploy = container 'Search Service Deployment (2-4 pods)'
-      file_deploy = container 'File Service Deployment (2-4 pods)'
-      notification_deploy = container 'Notification Service Deployment (2-4 pods)'
-      integration_deploy = container 'Integration Service Deployment (2-4 pods)'
+    keycloak = vm 'VM' {
+      instanceOf infra.keycloak 'Keycloak (OIDC/SSO)'
     }
 
-    data = system 'Data Layer' {
-      kafka_cluster = queue 'Kafka Cluster (3 brokers)'
-      keydb_cluster = database 'KeyDB Cluster (3 nodes)'
-      postgres_chat = database 'PostgreSQL Chat (primary + replica)'
-      postgres_file = database 'PostgreSQL File Metadata (primary + replica)'
-      postgres_notif = database 'PostgreSQL Notification (primary + replica)'
-      opensearch_cluster = database 'OpenSearch Cluster (3 nodes)'
-      s3_cluster = storage 'S3/MinIO Cluster'
+    config_service = vm 'VM' {
+      instanceOf infra.config_service 'Configuration Service'
+    }
+    vault = vm 'VM' {
+      instanceOf infra.vault 'Vault'
     }
 
-    observability = system 'Observability Layer' {
-      vm = system_ext 'VictoriaMetrics'
-      logs = system_ext 'Log Storage'
-      traces = system_ext 'Trace Storage'
-      alerting = system_ext 'Alertmanager'
+    dev1 = environment 'Dev1 Environment' {
+      data = environment 'Data Environment' {
+        kafka_cluster = instanceOf TB.kafka 'Kafka Cluster (3 brokers)'
+        keydb_cluster = instanceOf TB.keydb 'KeyDB Cluster (3 nodes)'
+        postgres_cluster = instanceOf TB.chat.postgres 'PostgreSQL (primary + replica)'
+        opensearch_cluster = instanceOf TB.search.opensearch 'OpenSearch Cluster (3 nodes)'
+        s3_cluster = instanceOf TB.fs.s3 'S3/MinIO Cluster'
+      }
+      app = kubernetes 'Kubernetes Cluster - TeamBridge' {
+        api_deploy = instanceOf TB.api_gateway 'API Gateway Deployment (3-6 pods)'
+        ws_deploy = instanceOf TB.ws_gateway 'WebSocket Gateway Deployment (4-8 pods)'
+        chat_deploy = instanceOf TB.chat.chat_service 'Chat Service Deployment (3-6 pods)'
+        search_deploy = instanceOf TB.search.search_service 'Search Service Deployment (2-4 pods)'
+        file_deploy = instanceOf TB.fs.file_service 'File Service Deployment (2-4 pods)'
+        notification_deploy = instanceOf TB.notification.push_service 'Notification Service Deployment (2-4 pods)'
+        integration_deploy = instanceOf TB.integration 'Integration Service Deployment (2-4 pods)'
+      }
+    }
+
+    dev2 = environment 'Dev2 Environment' {
+      data = environment 'Data Environment' {
+        kafka_cluster = instanceOf TB.kafka 'Kafka Cluster (3 brokers)'
+        keydb_cluster = instanceOf TB.keydb 'KeyDB Cluster (3 nodes)'
+        postgres_cluster = instanceOf TB.chat.postgres 'PostgreSQL (primary + replica)'
+        opensearch_cluster = instanceOf TB.search.opensearch 'OpenSearch Cluster (3 nodes)'
+        s3_cluster = instanceOf TB.fs.s3 'S3/MinIO Cluster'
+      }
+      app = kubernetes 'Kubernetes Cluster - TeamBridge' {
+        api_deploy = instanceOf TB.api_gateway 'API Gateway Deployment (3-6 pods)'
+        ws_deploy = instanceOf TB.ws_gateway 'WebSocket Gateway Deployment (4-8 pods)'
+        chat_deploy = instanceOf TB.chat.chat_service 'Chat Service Deployment (3-6 pods)'
+        search_deploy = instanceOf TB.search.search_service 'Search Service Deployment (2-4 pods)'
+        file_deploy = instanceOf TB.fs.file_service 'File Service Deployment (2-4 pods)'
+        notification_deploy = instanceOf TB.notification.push_service 'Notification Service Deployment (2-4 pods)'
+        integration_deploy = instanceOf TB.integration 'Integration Service Deployment (2-4 pods)'
+      }
+    }
+
+    stage = environment 'Stage Environment' {
+      data = environment 'Data Environment' {
+        kafka_cluster = instanceOf TB.kafka 'Kafka Cluster (3 brokers)'
+        keydb_cluster = instanceOf TB.keydb 'KeyDB Cluster (3 nodes)'
+        postgres_cluster = instanceOf TB.chat.postgres 'PostgreSQL (primary + replica)'
+        opensearch_cluster = instanceOf TB.search.opensearch 'OpenSearch Cluster (3 nodes)'
+        s3_cluster = instanceOf TB.fs.s3 'S3/MinIO Cluster'
+      }
+
+      app = kubernetes 'K8s Cluster - TeamBridge' {
+        api_deploy = instanceOf TB.api_gateway 'API Gateway Deployment (3-6 pods)'
+        ws_deploy = instanceOf TB.ws_gateway 'WebSocket Gateway Deployment (4-8 pods)'
+        chat_deploy = instanceOf TB.chat.chat_service 'Chat Service Deployment (3-6 pods)'
+        search_deploy = instanceOf TB.search.search_service 'Search Service Deployment (2-4 pods)'
+        file_deploy = instanceOf TB.fs.file_service 'File Service Deployment (2-4 pods)'
+        notification_deploy = instanceOf TB.notification.push_service 'Notification Service Deployment (2-4 pods)'
+        integration_deploy = instanceOf TB.integration 'Integration Service Deployment (2-4 pods)'
+      }
     }
   }
 
-  dr = system 'Disaster Recovery (DC2)' {
-    standby_app = system 'Warm Standby Kubernetes' {
-      api_standby = container 'API Gateway Standby (1-2 pods)'
-      ws_standby = container 'WebSocket Gateway Standby (1-2 pods)'
-      chat_standby = container 'Chat Service Standby (1-2 pods)'
+  prod_zone = zone 'Production Zone' {
+
+    observability = environment 'Observability Environment' {
+      vm = instanceOf infra.victoria_metrics 'VictoriaMetrics'
+      logs = instanceOf infra.log_storage 'Log Storage'
+      traces = instanceOf infra.trace_storage 'Trace Storage'
     }
 
-    standby_data = system 'Standby Data Layer' {
-      kafka_dr = queue 'Kafka Standby'
-      postgres_dr = database 'PostgreSQL Standby'
-      s3_dr = storage 'S3 Replication Target'
+    keycloak = vm 'VM' {
+      instanceOf infra.keycloak 'Keycloak (OIDC/SSO)'
+    }
+
+    config_service = vm 'VM' {
+      instanceOf infra.config_service 'Configuration Service'
+    }
+    vault = vm 'VM' {
+      instanceOf infra.vault 'Vault'
+    }
+    ldap = vm 'LDAP / Active Directory' {
+      instanceOf infra.ldap 'LDAP / Active Directory'
+    }
+
+    prod = environment 'Production Environment' {
+
+      data = environment 'Data Environment' {
+        kafka_cluster = instanceOf TB.kafka 'Kafka Cluster (3 brokers)'
+        keydb_cluster = instanceOf TB.keydb 'KeyDB Cluster (3 nodes)'
+        postgres_cluster = instanceOf TB.chat.postgres 'PostgreSQL (primary + replica)'
+        opensearch_cluster = instanceOf TB.search.opensearch 'OpenSearch Cluster (3 nodes)'
+        s3_cluster = instanceOf TB.fs.s3 'S3/MinIO Cluster'
+      }
+
+      app = kubernetes 'K8s Cluster - TeamBridge' {
+        api_deploy = instanceOf TB.api_gateway 'API Gateway Deployment (3-6 pods)'
+        ws_deploy = instanceOf TB.ws_gateway 'WebSocket Gateway Deployment (4-8 pods)'
+        chat_deploy = instanceOf TB.chat.chat_service 'Chat Service Deployment (3-6 pods)'
+        search_deploy = instanceOf TB.search.search_service 'Search Service Deployment (2-4 pods)'
+        file_deploy = instanceOf TB.fs.file_service 'File Service Deployment (2-4 pods)'
+        notification_deploy = instanceOf TB.notification.push_service 'Notification Service Deployment (2-4 pods)'
+        integration_deploy = instanceOf TB.integration 'Integration Service Deployment (2-4 pods)'
+      }
     }
   }
 
-  clients.web -[https]-> prod.edge.lb 'HTTPS'
-  clients.desktop -[https]-> prod.edge.lb 'HTTPS'
-  clients.mobile -[https]-> prod.edge.lb 'HTTPS'
-  clients.web -[WSS]-> prod.edge.lb 'WSS'
-  clients.desktop -[WSS]-> prod.edge.lb 'WSS'
-  clients.mobile -[WSS]-> prod.edge.lb 'WSS'
+  //   prod = system 'Production (DC1)' {
+  //     edge = system 'Edge Layer' {
+  //       lb = system_ext 'L4 Load Balancer'
+  //       ingress = container 'Ingress Controller (Nginx)'
+  //     }
 
-  prod.edge.lb -[https]-> prod.edge.ingress 'L7 routing'
-  prod.edge.ingress -[https]-> prod.app.api_deploy 'REST traffic'
-  prod.edge.ingress -[WSS]-> prod.app.ws_deploy 'Realtime traffic'
+  //     app = system 'Kubernetes Cluster - TeamBridge' {
+  //       api_deploy = container 'API Gateway Deployment (3-6 pods)'
+  //       ws_deploy = container 'WebSocket Gateway Deployment (4-8 pods)'
+  //       chat_deploy = container 'Chat Service Deployment (3-6 pods)'
+  //       search_deploy = container 'Search Service Deployment (2-4 pods)'
+  //       file_deploy = container 'File Service Deployment (2-4 pods)'
+  //       notification_deploy = container 'Notification Service Deployment (2-4 pods)'
+  //       integration_deploy = container 'Integration Service Deployment (2-4 pods)'
+  //     }
 
-  prod.app.api_deploy -[grpc]-> prod.app.chat_deploy
-  prod.app.api_deploy -[grpc]-> prod.app.search_deploy
-  prod.app.api_deploy -[grpc]-> prod.app.file_deploy
-  prod.app.api_deploy -[grpc]-> prod.app.notification_deploy
-  prod.app.api_deploy -[grpc]-> prod.app.integration_deploy
+  //     data = system 'Data Layer' {
+  //       kafka_cluster = queue 'Kafka Cluster (3 brokers)'
+  //       keydb_cluster = database 'KeyDB Cluster (3 nodes)'
+  //       postgres_chat = database 'PostgreSQL Chat (primary + replica)'
+  //       postgres_file = database 'PostgreSQL File Metadata (primary + replica)'
+  //       postgres_notif = database 'PostgreSQL Notification (primary + replica)'
+  //       opensearch_cluster = database 'OpenSearch Cluster (3 nodes)'
+  //       s3_cluster = storage 'S3/MinIO Cluster'
+  //     }
 
-  prod.app.ws_deploy -[grpc]-> prod.app.chat_deploy
-  prod.app.ws_deploy -[tcp]-> prod.data.keydb_cluster
-  prod.data.kafka_cluster -[kafka]-> prod.app.ws_deploy
+  //     observability = system 'Observability Layer' {
+  //       vm = system_ext 'VictoriaMetrics'
+  //       logs = system_ext 'Log Storage'
+  //       traces = system_ext 'Trace Storage'
+  //       alerting = system_ext 'Alertmanager'
+  //     }
+  //   }
 
-  prod.app.chat_deploy -[tcp]-> prod.data.postgres_chat
-  prod.app.chat_deploy -[kafka]-> prod.data.kafka_cluster
-  prod.app.search_deploy -[kafka]-> prod.data.kafka_cluster
-  prod.app.search_deploy -[http]-> prod.data.opensearch_cluster
-  prod.app.file_deploy -[tcp]-> prod.data.postgres_file
-  prod.app.file_deploy -[http]-> prod.data.s3_cluster
-  prod.app.notification_deploy -[tcp]-> prod.data.postgres_notif
-  prod.app.notification_deploy -[kafka]-> prod.data.kafka_cluster
-  prod.app.notification_deploy -[https]-> push
+  //   clients.web -[https]-> prod.edge.lb 'HTTPS'
+  //   clients.desktop -[https]-> prod.edge.lb 'HTTPS'
+  //   clients.mobile -[https]-> prod.edge.lb 'HTTPS'
+  //   clients.web -[WSS]-> prod.edge.lb 'WSS'
+  //   clients.desktop -[WSS]-> prod.edge.lb 'WSS'
+  //   clients.mobile -[WSS]-> prod.edge.lb 'WSS'
 
-  prod.app.api_deploy -> TB.api_gateway 'runs'
-  prod.app.ws_deploy -> TB.ws_gateway 'runs'
-  prod.app.chat_deploy -> TB.chat.chat_service 'runs'
-  prod.app.search_deploy -> TB.search.search_service 'runs'
-  prod.app.file_deploy -> TB.fs.file_service 'runs'
-  prod.app.notification_deploy -> TB.notification.push_service 'runs'
-  prod.app.integration_deploy -> TB.integration 'runs'
+  //   prod.edge.lb -[https]-> prod.edge.ingress 'L7 routing'
+  //   prod.edge.ingress -[https]-> prod.app.api_deploy 'REST traffic'
+  //   prod.edge.ingress -[WSS]-> prod.app.ws_deploy 'Realtime traffic'
 
-  prod.data.kafka_cluster -> TB.kafka 'hosts'
-  prod.data.keydb_cluster -> TB.keydb 'hosts'
-  prod.data.postgres_chat -> TB.chat.postgres 'hosts'
-  prod.data.postgres_file -> TB.fs.db_fs 'hosts'
-  prod.data.postgres_notif -> TB.notification.postgres 'hosts'
-  prod.data.opensearch_cluster -> TB.search.opensearch 'hosts'
-  prod.data.s3_cluster -> TB.fs.s3 'hosts'
+  //   prod.app.api_deploy -[grpc]-> prod.app.chat_deploy
+  //   prod.app.api_deploy -[grpc]-> prod.app.search_deploy
+  //   prod.app.api_deploy -[grpc]-> prod.app.file_deploy
+  //   prod.app.api_deploy -[grpc]-> prod.app.notification_deploy
+  //   prod.app.api_deploy -[grpc]-> prod.app.integration_deploy
 
-  prod.app.api_deploy -> infra.keycloak 'OIDC'
-  infra.keycloak -> infra.ldap 'federation'
+  //   prod.app.ws_deploy -[grpc]-> prod.app.chat_deploy
+  //   prod.app.ws_deploy -[tcp]-> prod.data.keydb_cluster
+  //   prod.data.kafka_cluster -[kafka]-> prod.app.ws_deploy
 
-  prod.observability.vm -> prod.app 'metrics scrape'
-  prod.observability.logs -> prod.app 'logs ingest'
-  prod.observability.traces -> prod.app 'traces ingest'
-  prod.observability.alerting -> prod.observability.vm 'alerts'
+  //   prod.app.chat_deploy -[tcp]-> prod.data.postgres_chat
+  //   prod.app.chat_deploy -[kafka]-> prod.data.kafka_cluster
+  //   prod.app.search_deploy -[kafka]-> prod.data.kafka_cluster
+  //   prod.app.search_deploy -[http]-> prod.data.opensearch_cluster
+  //   prod.app.file_deploy -[tcp]-> prod.data.postgres_file
+  //   prod.app.file_deploy -[http]-> prod.data.s3_cluster
+  //   prod.app.notification_deploy -[tcp]-> prod.data.postgres_notif
+  //   prod.app.notification_deploy -[kafka]-> prod.data.kafka_cluster
+  //   prod.app.notification_deploy -[https]-> push
 
-  prod.data.postgres_chat -[tcp]-> dr.standby_data.postgres_dr 'async replication'
-  prod.data.kafka_cluster -[kafka]-> dr.standby_data.kafka_dr 'mirror topics'
-  prod.data.s3_cluster -[http]-> dr.standby_data.s3_dr 'bucket replication'
+  //   prod.app.api_deploy -> TB.api_gateway 'runs'
+  //   prod.app.ws_deploy -> TB.ws_gateway 'runs'
+  //   prod.app.chat_deploy -> TB.chat.chat_service 'runs'
+  //   prod.app.search_deploy -> TB.search.search_service 'runs'
+  //   prod.app.file_deploy -> TB.fs.file_service 'runs'
+  //   prod.app.notification_deploy -> TB.notification.push_service 'runs'
+  //   prod.app.integration_deploy -> TB.integration 'runs'
 
-  dr.standby_data.postgres_dr -[tcp]-> dr.standby_app.chat_standby 'promote on failover'
-  dr.standby_app.api_standby -[grpc]-> dr.standby_app.chat_standby
-  dr.standby_app.ws_standby -[grpc]-> dr.standby_app.chat_standby
+  //   prod.data.kafka_cluster -> TB.kafka 'hosts'
+  //   prod.data.keydb_cluster -> TB.keydb 'hosts'
+  //   prod.data.postgres_chat -> TB.chat.postgres 'hosts'
+  //   prod.data.postgres_file -> TB.fs.db_fs 'hosts'
+  //   prod.data.postgres_notif -> TB.notification.postgres 'hosts'
+  //   prod.data.opensearch_cluster -> TB.search.opensearch 'hosts'
+  //   prod.data.s3_cluster -> TB.fs.s3 'hosts'
+
+  //   prod.app.api_deploy -> infra.keycloak 'OIDC'
+  //   infra.keycloak -> infra.ldap 'federation'
+
+  //   prod.observability.vm -> prod.app 'metrics scrape'
+  //   prod.observability.logs -> prod.app 'logs ingest'
+  //   prod.observability.traces -> prod.app 'traces ingest'
+  //   prod.observability.alerting -> prod.observability.vm 'alerts'
+
 }
 
-views {
-  view deployment_prod of prod {
-    title 'TeamBridge - Deployment Production (DC1)'
-    include *
-    include clients.*
-    include infra.keycloak
-    include infra.ldap
-    include push
 
-    style * {
-      color secondary
-    }
-    style prod, prod.* {
-      color green
-    }
-    style prod.data, prod.data.* {
-      color muted
-    }
-  }
-
-  view deployment_dr of dr {
-    title 'TeamBridge - Deployment DR (DC2)'
-    include *
-    include prod.data.postgres_chat
-    include prod.data.kafka_cluster
-    include prod.data.s3_cluster
-
-    style * {
-      color secondary
-    }
-    style dr, dr.* {
-      color green
-    }
-  }
-
-  view deployment_mapping {
-    title 'TeamBridge - Logical to Physical Mapping'
-    include
-      TB.api_gateway,
-      TB.ws_gateway,
-      TB.chat.chat_service,
-      TB.search.search_service,
-      TB.fs.file_service,
-      TB.notification.push_service,
-      TB.integration,
-      TB.kafka,
-      TB.keydb,
-      TB.chat.postgres,
-      TB.fs.db_fs,
-      TB.notification.postgres,
-      TB.search.opensearch,
-      TB.fs.s3,
-      prod.app.*,
-      prod.data.*
-
-    style * {
-      color secondary
-    }
-    style TB, TB.* {
-      color green
-    }
-    style prod, prod.* {
-      color muted
-    }
-  }
-}

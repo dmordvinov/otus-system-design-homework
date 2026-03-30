@@ -1,1 +1,99 @@
 === CI/CD процесс
+
+==== Принципы
+
+* Trunk based flow с короткоживущими feature ветками
+* Автоматизация всех проверок до деплоя
+* Immutable артефакты - один и тот же образ проходит все окружения
+* Progressive delivery - поэтапное включение нагрузки
+* Быстрый rollback без ручных нестабильных операций
+
+==== Стратегия ветвления и релизов
+
+* Основная ветка - `master`
+* Рабочие ветки - `feature/*`, `bugfix/*`, `hotfix/*`
+* Релизный тег - `vX.Y.Z` (SemVer)
+* Любое изменение в `master` проходит полный CI pipeline
+* Прод релиз инициируется по tag или вручную через approval gate
+
+==== Конвейер CI (Build/Test)
+
+Pipeline `merge request`::
+1. Static checks
+* Линтеры, форматирование
+2. Unit tests
+* Быстрые тесты доменной логики
+3. Integration tests
+* Контракты сервисов, БД, Kafka, Redis, S3 mock/integration
+4. Contract tests
+* REST/WS/Kafka совместимость схем
+5. Build
+* Сборка сервисов и создание контейнерных образов (docker)
+
+Quality gates для merge::
+* Все шаги pipeline зелёные
+* Нет падения Critical тестов
+* Обязателен code review (минимум 1 аппрув)
+
+==== Конвейер CD (Deploy/Promote)
+
+Последовательность продвижения::
+* `Dev` -> `Stage` -> `Prod`
+
+Правило артефактов::
+* В каждый environment деплоится один и тот же digest контейнера
+* Пересборка между окружениями запрещена
+
+Deployment strategy::
+* Для stateless сервисов - rolling update
+* Для критичных сервисов (`API Gateway`, `WebSocket Gateway`, `Chat Service`) - canary
+
+Approval gates::
+* Перед `Stage` - автоматический
+* Перед `Prod` - ручное подтверждение release manager/on-call
+
+==== Миграции БД
+
+Подход::
+* Миграции только вперед (forward-only)
+* Backward-compatible схема на период релиза
+
+Правила безопасности миграций::
+* Проверка миграций на stage с production-like данными
+
+==== Progressive delivery в production
+
+Шаги rollout::
+1. Deploy canary (5-10% трафика)
+2. Наблюдение 10-20 минут:
+* `http_5xx_rate`
+* `message_end_to_end_latency_ms p95`
+* `ws_disconnect_rate`
+* `kafka_consumer_lag`
+3. Увеличение трафика до 25%, 50%, 100%
+4. Финальная валидация smoke и бизнес сценариев
+
+Условия остановки rollout::
+* Рост ошибок выше порога
+* Регрессия latency > 15% от baseline
+* Аномальный рост reconnect/consumer lag
+
+==== Security
+
+* Подпись контейнерных образов
+* Регулярное обновление base images
+* Секреты только из secret manager (Vault/K8s secrets), без хранения в репозитории
+* Раздельные сервисные аккаунты и минимальные привилегии в CI/CD
+
+==== Наблюдаемость pipeline и деплоя
+
+Метрики CI/CD::
+* Lead Time for Changes
+* Deployment Frequency
+* Change Failure Rate
+* Mean Time to Restore (MTTR)
+
+Release dashboard::
+* Статус pipeline и этапов продвижения
+* История релизов и rollback
+* Сводка quality gates и SLO после релиза

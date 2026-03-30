@@ -1,0 +1,63 @@
+@startuml
+title Связи между сущностями
+
+skinparam component {
+    BackgroundColor<<service>> LightBlue
+    BorderColor<<service>> DarkBlue
+    ArrowColor<<service>> DarkBlue
+}
+
+skinparam rectangle {
+    BackgroundColor<<entity>> LightGreen
+    BorderColor<<entity>> DarkGreen
+    ArrowColor<<entity>> DarkGreen
+}
+
+package "Модель данных" {
+    [UserProfile] <<entity>>
+    [Message] <<entity>>
+    [Chat] <<entity>>
+    [Attachment] <<entity>>
+    [File] <<entity>>
+    [FileMetadata] <<entity>>
+    [ChatMember] <<entity>>
+    
+    [UserProfile] --> [Message] : отправляет
+    [Message] --> [Chat] : принадлежит
+    [Chat] --> [ChatMember] : участники
+    [ChatMember] --> [UserProfile] : пользователь
+    [Message] --> [Attachment] : содержит
+    [Attachment] --> [File] : ссылается на
+    [File] --> [FileMetadata] : метаданные
+    [Chat] --> [Message] : последние сообщения
+}
+
+note left of [UserProfile]
+  Профиль пользователя
+  из Keycloak
+  Только статус присутствия
+  может изменяться
+end note
+
+note left of [Message]
+  Сообщения с разными
+  типами содержимого
+  Редактируемые
+end note
+
+note left of [Chat]
+  Личные и групповые
+  чаты
+  Групповые имеют админов
+end note
+
+note left of [Attachment]
+  Прикрепленные файлы
+  к сообщениям
+end note
+
+note left of [File]
+  Файлы в отдельной
+  системе хранения
+end note
+@enduml

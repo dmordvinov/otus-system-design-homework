@@ -1,0 +1,15 @@
+{
+  "name": "teambridge-likec4",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "likec4 start",
+    "dev": "likec4 serve",
+    "build": "likec4 build",
+    "export:png": "likec4 export png -o ./png"
+  },
+  "devDependencies": {
+    "likec4": "^1.53.0"
+  }
+}

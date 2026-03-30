@@ -1,0 +1,261 @@
+= Модель данных сервиса обмена мгновенными сообщениями
+
+== Общая архитектура
+
+image::messaging_architecture.png[Messaging Architecture,800,600]
+
+== Сущности модели данных
+
+=== 1. Профиль пользователя
+
+[source,plantuml]
+----
+@startuml
+class UserProfile {
+    +userId: UUID
+    +externalId: String
+    +username: String
+    +email: String
+    +firstName: String
+    +lastName: String
+    +avatarUrl: String
+    +status: PresenceStatus
+    +createdAt: LocalDateTime
+    +updatedAt: LocalDateTime
+}
+
+enum PresenceStatus {
+    ONLINE
+    OFFLINE
+    AWAY
+    DO_NOT_DISTURB
+}
+@enduml
+----
+
+=== 2. Сообщения
+
+[source,plantuml]
+----
+@startuml
+class Message {
+    +messageId: UUID
+    +chatId: UUID
+    +senderId: UUID
+    +content: String
+    +contentType: MessageType
+    +timestamp: LocalDateTime
+    +edited: Boolean
+    +editedAt: LocalDateTime
+    +reactions: List<Reaction>
+    +attachments: List<Attachment>
+}
+
+enum MessageType {
+    TEXT
+    EMOJI
+    IMAGE
+    FILE
+    SYSTEM
+}
+
+class Reaction {
+    +reactionId: UUID
+    +userId: UUID
+    +emoji: String
+    +timestamp: LocalDateTime
+}
+
+class Attachment {
+    +attachmentId: UUID
+    +fileId: UUID
+    +fileName: String
+    +fileSize: Long
+    +fileType: String
+    +url: String
+    +uploadedAt: LocalDateTime
+}
+@enduml
+----
+
+=== 3. Чаты
+
+[source,plantuml]
+----
+@startuml
+class Chat {
+    +chatId: UUID
+    +chatType: ChatType
+    +name: String
+    +description: String
+    +createdBy: UUID
+    +createdAt: LocalDateTime
+    +lastMessageAt: LocalDateTime
+    +members: List<ChatMember>
+    +admins: List<UUID>
+}
+
+enum ChatType {
+    DIRECT
+    GROUP
+}
+
+class ChatMember {
+    +userId: UUID
+    +joinedAt: LocalDateTime
+    +role: MemberRole
+}
+
+enum MemberRole {
+    MEMBER
+    ADMIN
+    OWNER
+}
+@enduml
+----
+
+=== 4. Файлы
+
+[source,plantuml]
+----
+@startuml
+class File {
+    +fileId: UUID
+    +fileName: String
+    +fileSize: Long
+    +fileType: String
+    +fileUrl: String
+    +uploadedBy: UUID
+    +uploadedAt: LocalDateTime
+    +storageLocation: String
+    +isPublic: Boolean
+}
+
+class FileMetadata {
+    +metadataId: UUID
+    +fileId: UUID
+    +dimensions: String
+    +resolution: String
+    +duration: Integer
+    +checksum: String
+}
+@enduml
+----
+
+== Связи между сущностями
+
+[source,plantuml]
+----
+@startuml
+UserProfile --> Message : отправляет
+Message --> Chat : принадлежит
+Chat --> ChatMember : участники
+ChatMember --> UserProfile : пользователь
+Message --> Attachment : содержит
+Attachment --> File : ссылается на
+File --> FileMetadata : метаданные
+Chat --> Message : последние сообщения
+@enduml
+----
+
+== Диаграмма взаимосвязей сущностей
+
+image::entity_relationships.png[Entity Relationships,800,600]
+
+== Описание сущностей
+
+=== UserProfile
+- Хранит информацию о пользователе, импортированного из Keycloak
+- Не редактируется, кроме статуса присутствия
+- Содержит основную информацию: имя, email, аватар
+
+=== Message
+- Содержит текстовое сообщение с различными типами контента
+- Поддерживает редактирование сообщений
+- Может содержать вложения и реакции
+- Типы сообщений: текст, эмодзи, изображения, файлы
+
+=== Chat
+- Поддерживает личные и групповые чаты
+- Групповые чаты имеют администраторов
+- Хранит историю переписки
+
+=== Attachment
+- Прикрепленные файлы к сообщениям
+- Ссылается на внешнюю систему хранения файлов
+
+=== File
+- Файлы, хранимые в отдельной системе
+- Содержит метаданные для разных типов файлов
+- Поддерживает различные форматы (изображения, документы и т.д.)
+
+== Технические детали
+
+=== UUID
+Все сущности используют UUID для уникальной идентификации
+
+=== Временные метки
+- createdAt: время создания сущности
+- updatedAt: время последнего обновления
+- timestamp: время отправки сообщения
+- editedAt: время редактирования сообщения
+
+=== Статусы
+- PresenceStatus: статус присутствия пользователя
+- MemberRole: роль пользователя в чате
+- MessageType: тип содержимого сообщения
+
+== Пример использования
+
+[source,plantuml]
+----
+@startuml
+actor User
+participant "Messaging Service" as Service
+participant "Database" as DB
+participant "File Storage" as FS
+
+User -> Service : Отправить сообщение
+Service -> DB : Сохранить сообщение
+Service -> FS : Загрузить файл (если есть)
+Service -> DB : Сохранить вложение
+Service -> DB : Обновить последнее сообщение в чате
+@enduml
+----
+
+== Дополнительные возможности
+
+=== Реакции на сообщения
+- Пользователи могут добавлять реакции (эмодзи) к сообщениям
+- Реакции хранятся отдельно от основного содержимого
+
+=== Редактирование сообщений
+- Сообщения могут быть отредактированы до определенного времени
+- История редактирования сохраняется
+
+=== Групповые чаты
+- Администраторы могут управлять участниками
+- Возможность назначения администраторов
+- Права участников различаются по роли
+
+== Бизнес-логика
+
+=== Состояния чатов
+- DIRECT: личные чаты между двумя пользователями
+- GROUP: групповые чаты с несколькими участниками
+
+=== Права пользователей
+- MEMBER: обычный участник
+- ADMIN: может управлять участниками и настройками
+- OWNER: полные права на чат
+
+=== Типы сообщений
+- TEXT: текстовые сообщения
+- EMOJI: реакции с эмодзи
+- IMAGE: изображения
+- FILE: прикрепленные файлы
+- SYSTEM: системные сообщения
+
+== Схема хранения данных
+
+image::data_storage_schema.png[Data Storage Schema,800,600]

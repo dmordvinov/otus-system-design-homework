@@ -1,0 +1,138 @@
+model {
+
+  employee = actor 'Сотрудник'
+  admin = actor 'Администратор'
+
+  TB = system 'TeamBridge' {
+
+    description '
+      Корпоративная чат-платформа:
+      realtime сообщения, файлы, поиск, уведомления и интеграции
+    '
+
+    api_gateway = container 'API Gateway' {
+      description 'REST, auth, rate limit'
+    }
+
+    ws_gateway = container 'WebSocket Gateway' {
+      description 'WSS соединения, realtime доставка, presence routing'
+    }
+
+    search = system 'Searching System' {
+
+      search_service = container 'Search Service' {
+        description 'Индексация и поиск'
+      }
+      opensearch = database 'OpenSearch' {
+        description 'Поиск'
+        technology '[OpenSearch]'
+      }
+      search_service -[http]-> opensearch 'indexing/searching'
+      search_service -[kafka]-> TB.kafka 'Consume Message Events'
+    }
+
+    fs = system 'File Management' {
+
+      file_service = container 'File Service' {
+        description 'Загрузка/чтение файлов'
+      }
+      s3 = database 'S3' {
+        description 'Хранение файлов'
+        technology '[Minio]'
+      }
+      db_fs = database 'File Metadata DB' {
+        description 'Метаданные файлов'
+        technology '[PostgreSql]'
+      }
+
+      file_service -[http]-> s3 'Store/Read Files'
+      file_service -[tcp]-> db_fs 'file metadata'
+    }
+
+    notification = system 'Notification System' {
+
+      push_service = container 'Notification Service' {
+        description 'Push Policy и доставка уведомлений'
+      }
+      postgres = database 'Notification Settings DB' {
+        description 'Настройки push уведомлений'
+        technology '[PostgreSql]'
+      }
+
+      push_service -[tcp]-> postgres 'notification settings'
+      push_service -[kafka]-> TB.kafka 'Consume Message Created Events'
+      push_service -[https]-> push 'Push Message Events'
+      push_service -[tcp]-> keydb 'read active sessions'
+    }
+
+    chat = system 'Chat System' {
+
+      chat_service = container 'Chat Service' {
+        description 'Обработка сообщений, чатов, участников, администрирование чатов'
+      }
+      postgres = database 'Chat DB' {
+        description 'Чаты, сообщения, участники'
+        technology '[PostgreSql]'
+      }
+
+      chat_service -[tcp]-> postgres 'messages/chats/users'
+      chat_service -[kafka]-> TB.kafka 'Publish/Consume Messages'
+      chat_service -> keycloak 'profile sync'
+    }
+
+    kafka = queue 'Message Bus' {
+
+      technology '[Kafka]'
+    }
+
+    keydb = database 'KeyDB / Redis' {
+      description 'presence/sessions'
+      technology '[KeyDB/Redis]'
+    }
+
+    TB.api_gateway -[grpc]-> TB.chat.chat_service
+    TB.api_gateway -[grpc]-> TB.search.search_service 'Поиск пользователей/сообщений'
+    TB.api_gateway -[grpc]-> TB.file_service 'Работа с файлами'
+    TB.api_gateway -[grpc]-> TB.notification.push_service 'Настройка push уведомлений'
+    TB.api_gateway -> integration 'REST'
+
+    TB.ws_gateway -> keycloak 'JWT verify (JWKS)'
+    TB.ws_gateway -[tcp]-> TB.keydb 'Хранение WS сессий и статуса присутствия пользователей с TTL'
+
+    TB.kafka -[kafka]-> TB.ws_gateway 'message events'
+
+    integration = system_ext 'Plugin Service' {
+      description 'Внешние коннекторы и webhooks'
+    }
+    integration -> TB.kafka 'consume/produce events'
+  }
+
+  infra = system 'Infrastructure' {
+    description 'Infrastructure services'
+    keycloak = system_ext 'Keycloak (OIDC/SSO)'
+    ldap = system_ext 'LDAP / Active Directory'
+    config_service = system_ext 'Configuration Service' {
+      technology '[Consul]'
+    }
+    victoria_metrics = system_ext 'VictoriaMetrics'
+    vault = system_ext 'Vault'
+
+    TB.api_gateway -> keycloak 'OIDC / JWT'
+    keycloak -> ldap 'user federation'
+  }
+
+  clients = system 'Clients' {
+    web = webapp 'Web Client'
+    desktop = desktop 'Desktop Client'
+    mobile = mobile 'Mobile Client'
+  }
+
+  push = system_ext 'Push Providers (APNs/FCM/WebPush)'
+
+  employee -> clients 'использует'
+  admin -> clients.web 'администрирует'
+
+  clients -[https]-> TB.api_gateway 'Синхронные операции: поиск, CRUD, администрирование, загрузка/чтение файлов'
+  clients -[WSS]-> TB.ws_gateway 'Realtime соединение, получение новых сообщений, событий присутствия и обновлений чатов'
+
+}

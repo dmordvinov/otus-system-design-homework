@@ -1,1 +1,198 @@
 === Форматы взаимодействия
+
+Раздел фиксирует контракты обмена данными между клиентами и backend сервисами TeamBridge.
+
+=== Общие правила контрактов
+
+* Транспорт для внешних API - HTTPS + JSON (`UTF-8`)
+* Транспорт для realtime - WebSocket Secure (`WSS`) + JSON events
+* Транспорт для межсервисных событий - Kafka (`JSON`)
+* Время во всех контрактах - ISO-8601 в UTC (`2026-03-27T10:15:30Z`)
+* Идентификаторы - `UUID v4`
+* Версия контракта передается полем `schema_version`
+* Идемпотентность клиентских команд - через `client_message_id` и `request_id`
+
+=== REST API - пример отправки сообщения
+
+Endpoint::
+* `POST /api/v1/chats/{chat_id}/messages`
+
+Headers::
+* `Authorization: Bearer <JWT>`
+* `Content-Type: application/json`
+* `X-Request-Id: <uuid>`
+
+Request body::
+
+[source,json]
+----
+{
+  "client_message_id": "f9f8cf2c-473f-4177-a5dd-1e30d3bb9f6e",
+  "text": "Привет! Документы отправил.",
+  "attachments": [
+    {
+      "file_id": "5e17f0e3-3d07-426e-b45f-4939429e045a"
+    }
+  ],
+  "mentions": [
+    "1e1bc4df-0674-4ebf-ae9e-d68f89dd6079"
+  ]
+}
+----
+
+Response body (`200 OK`)::
+
+[source,json]
+----
+{
+  "message_id": "45883502-d9ca-43be-bf42-57ef7f0e3f6b",
+  "chat_id": "f0952258-95c8-4db3-83ca-66f1a246b9be",
+  "sender_id": "8dcb22d0-f626-4135-a411-341dc9cb5f74",
+  "text": "Привет! Документы отправил.",
+  "attachments": [
+    {
+      "file_id": "5e17f0e3-3d07-426e-b45f-4939429e045a"
+    }
+  ],
+  "created_at": "2026-03-27T10:15:30Z",
+  "status": "accepted"
+}
+----
+
+=== Единый формат ошибок REST
+
+[source,json]
+----
+{
+  "error": {
+    "code": "MESSAGE_VALIDATION_FAILED",
+    "message": "Text is empty",
+    "details": {
+      "field": "text"
+    },
+    "retryable": false
+  },
+  "request_id": "8f1aefdd-8ef6-4d6f-bd98-a4fe2f12a20b",
+  "timestamp": "2026-03-27T10:15:31Z"
+}
+----
+
+=== WebSocket формат событий
+
+Envelope для всех WS сообщений::
+
+[source,json]
+----
+{
+  "event_type": "message.new",
+  "schema_version": 1,
+  "event_id": "deca1ea0-61f8-41cb-bfbc-91f4f1cf9168",
+  "occurred_at": "2026-03-27T10:15:30Z",
+  "payload": {}
+}
+----
+
+Событие доставки нового сообщения (`message.new`)::
+
+[source,json]
+----
+{
+  "event_type": "message.new",
+  "schema_version": 1,
+  "event_id": "deca1ea0-61f8-41cb-bfbc-91f4f1cf9168",
+  "occurred_at": "2026-03-27T10:15:30Z",
+  "payload": {
+    "message_id": "45883502-d9ca-43be-bf42-57ef7f0e3f6b",
+    "chat_id": "f0952258-95c8-4db3-83ca-66f1a246b9be",
+    "sender_id": "8dcb22d0-f626-4135-a411-341dc9cb5f74",
+    "text": "Привет! Документы отправил.",
+    "created_at": "2026-03-27T10:15:30Z"
+  }
+}
+----
+
+Ack от клиента::
+
+[source,json]
+----
+{
+  "event_type": "message.ack",
+  "schema_version": 1,
+  "event_id": "9ef5f1f5-bb5e-4281-973d-bfd7cefc8e4e",
+  "occurred_at": "2026-03-27T10:15:31Z",
+  "payload": {
+    "message_id": "45883502-d9ca-43be-bf42-57ef7f0e3f6b",
+    "received": true
+  }
+}
+----
+
+=== Kafka формат доменных событий
+
+Topic naming::
+* `teambridge.chat.message.v1`
+* `teambridge.chat.presence.v1`
+* `teambridge.notification.requested.v1`
+
+Ключ сообщения Kafka::
+* Для message событий используется `chat_id` - обеспечивает порядок внутри чата
+
+Событие `MessageCreated`::
+
+[source,json]
+----
+{
+  "event_type": "MessageCreated",
+  "schema_version": 1,
+  "event_id": "a3fc8a72-1733-4067-b54e-386a89712ed2",
+  "occurred_at": "2026-03-27T10:15:30Z",
+  "chat_id": "f0952258-95c8-4db3-83ca-66f1a246b9be",
+  "message_id": "45883502-d9ca-43be-bf42-57ef7f0e3f6b",
+  "sender_id": "8dcb22d0-f626-4135-a411-341dc9cb5f74",
+  "text": "Привет! Документы отправил.",
+  "attachments": [
+    {
+      "file_id": "5e17f0e3-3d07-426e-b45f-4939429e045a"
+    }
+  ],
+  "mentions": [
+    "1e1bc4df-0674-4ebf-ae9e-d68f89dd6079"
+  ],
+  "trace_id": "4f53b2a8-95f9-4452-b73f-4bf5cc41e677"
+}
+----
+
+=== Формат запроса на push уведомление
+
+Событие в Notification Service (`notification.requested`)::
+
+[source,json]
+----
+{
+  "event_type": "notification.requested",
+  "schema_version": 1,
+  "event_id": "23cb26e8-9473-4bc3-a8ee-8cc46733620c",
+  "occurred_at": "2026-03-27T10:15:31Z",
+  "recipient_id": "1e1bc4df-0674-4ebf-ae9e-d68f89dd6079",
+  "chat_id": "f0952258-95c8-4db3-83ca-66f1a246b9be",
+  "message_id": "45883502-d9ca-43be-bf42-57ef7f0e3f6b",
+  "push_type": "new_message",
+  "title": "Новое сообщение",
+  "body": "Привет! Документы отправил.",
+  "deep_link": "teambridge://chat/f0952258-95c8-4db3-83ca-66f1a246b9be"
+}
+----
+
+=== Версионирование и совместимость
+
+* Backward compatibility - обязательна для минорных изменений
+* Новые поля добавляются как optional
+* Удаление или изменение семантики поля - только через новую мажорную версию (`v2`)
+* Время deprecation старой версии - не менее 90 дней
+
+=== Безопасность и валидация
+
+* JWT обязателен для всех внешних REST/WS вызовов
+* Проверка прав доступа выполняется в Chat Service
+* Максимальный размер payload для текстового сообщения - 16 KB
+* Для вложений передается только `file_id`, бинарные данные хранятся в объектном хранилище

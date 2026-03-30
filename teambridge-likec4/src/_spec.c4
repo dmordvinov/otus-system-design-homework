@@ -1,0 +1,129 @@
+specification {
+
+  color color_system_ext #6C6477
+  color color_ext #6C6477
+  color color_infra #6C6477
+  color color_queue #6C6477
+  color color_storage #939393
+  color color_database #6C6477
+  color color_container #23A2D9
+
+  relationship WSS {
+    color indigo
+    //tail normal
+    technology "WSS"
+  }
+
+  relationship http {
+    color indigo
+    //tail normal
+    technology "HTTP"
+  }
+
+  relationship https {
+    color green
+    //tail normal
+    technology "HTTPS"
+  }
+
+  relationship grpc {
+    color indigo
+    tail normal
+    technology "GRPC"
+  }
+
+  relationship event {
+    color indigo
+    //tail none
+    technology "queue"
+  }
+
+  relationship kafka {
+    color indigo
+    //tail none
+    technology "queue"
+  }
+
+  relationship tcp {
+    color indigo
+    tail normal
+    technology "TCP"
+  }
+
+  element actor {
+    style {
+      shape person
+      color indigo
+    }
+  }
+
+  element system
+  element component
+  element service
+
+  element webapp {
+    style {
+      shape browser
+    }
+  }
+
+  element mobile {
+    style {
+      shape mobile
+    }
+  }
+
+  element desktop {
+    style {
+      shape browser
+    }
+  }
+
+
+  element storage {
+    style {
+      shape storage
+      color color_storage
+    }
+  }
+
+  element infra {
+    notation "Инфраструктура"
+    style {
+      color sky
+    }
+  }
+
+  element queue {
+    notation "Шина данных"
+    style {
+      color color_storage
+      shape queue
+      opacity 20%
+    }
+  }
+
+  element database {
+    notation "База данных"
+    style {
+      color color_storage
+      shape storage
+    }
+  }
+
+  element system_ext {
+    notation ""
+    style {
+      color color_ext
+      shape rectangle
+    }
+  }
+
+  element container {
+    notation "C4 element Container"
+    style {
+      color color_container
+      shape rectangle
+    }
+  }
+}

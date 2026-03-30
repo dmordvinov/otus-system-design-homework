@@ -1,1 +1,15 @@
 === Внешние интеграции
+
+1. Keycloak в качестве IAM сервиса, с выделенным realm - teamBridge, который импортирует группы и учетные записи пользователей компании
+2. Active Directory или другой LDAP каталог, как внешний источник учетных записей сотрудников компании
+3. Push Notification сторонние сервисы: APN (Apple Push Notifications), FCM (firebase cloud messaging)
+
+
+|===
+|Outbounding |Inbounding |Protocol |Descirption
+| Keycloak | AD/LDAP | LDAP (LDAPS) | Синхронизация корпоративных учетных записей и групп через federation
+| ApiGateway | Keycloak | REST: HTTP | Проверка и обработка аутентификации HTTP запросов
+| WebSocketGateway | Keycloak | REST: HTTP | Проверка JWT токена (по openid configuration/JWKS) при установке WS соединения
+| ChatService | Keycloak | REST: HTTP | Чтение профиля сотрудника и статуса учетной записи (активна/заблокирована)
+| NotificationService| APN/FCM |  REST: HTTP | Отправка уведомлений на устройство пользователя
+|===

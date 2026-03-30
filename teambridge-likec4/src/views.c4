@@ -1,0 +1,33 @@
+views {
+  view index {
+    title 'TeamBridge - Landscape'
+    include *
+  }
+
+  view context {
+    title 'TeamBridge - Context'
+    include *
+    include clients.*
+    include TB
+    include TB.api_gateway
+    include TB.fs.*
+    include TB.ws_gateway
+    include TB.chat.*
+    include TB.chat.chat_service
+    include TB.chat.postgres
+    include TB.search
+    include TB.search.search_service
+    include TB.search.opensearch
+    include TB.notification
+    include TB.notification.push_service
+    include TB.notification.postgres
+    include TB.file_service
+    include TB.keydb
+    include TB.kafka
+    include TB.s3
+    include TB.opensearch
+    include infra.*
+  }
+
+}
+  

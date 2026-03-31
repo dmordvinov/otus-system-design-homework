@@ -2,4 +2,4 @@
 
 ==== ER схема (логический уровень)
 
-image::entity.png[]
+image::fLVTRjis5BxNKt2-cHlCG3SWDqLHr4taJBDDUuxTDbU26j491_ru4btKQmeiwO1Xm82yIjOjdPSiwIj8RxH37NcI65g1KGG8Zix_-RuZqdeQ2oSISzypZ6FkCiBycLWGd_clM1GRnXSkc_A0aU78whT71tRNF233xl_gpc1aMdiqKtSAzOHQtqzCCYaqT32swQJN8vGQ1Wi4XoADUGmr6iI9IIQHjmOXMrAqkKiUaSd4sYMF.png[]

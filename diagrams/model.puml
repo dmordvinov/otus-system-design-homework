@@ -1,0 +1,60 @@
+@startuml
+
+hide empty members
+
+skinparam component {
+    BackgroundColor<<service>> LightBlue
+    BorderColor<<service>> DarkBlue
+    ArrowColor<<service>> DarkBlue
+}
+
+skinparam rectangle {
+    BackgroundColor<<entity>> LightGreen
+    BorderColor<<entity>> DarkGreen
+    ArrowColor<<entity>> DarkGreen
+}
+
+    [UserProfile] <<entity>>
+    [Chat] <<entity>>
+    [Message] <<entity>>
+    [MessageDelivery] <<entity>>
+    [FileRef] <<entity>>
+    [ChatMember] <<entity>>
+
+
+UserProfile --> Message : отправляет
+Message --> Chat : принадлежит
+Chat --> ChatMember : участники
+ChatMember --> UserProfile : пользователь
+Message --> FileRef : ссылается на
+Message --> MessageDelivery: содержит
+MessageDelivery --> UserProfile: ссылается
+Chat --> Message : последние сообщения
+
+
+note left of [UserProfile]
+  Профиль пользователя
+  из Keycloak
+  Только статус присутствия
+  может изменяться
+end note
+
+note left of [Message]
+  Сообщения с разными
+  типами содержимого
+  Редактируемые
+end note
+
+note left of [Chat]
+  Личные и групповые
+  чаты
+  Групповые имеют админов
+end note
+
+note left of [FileRef]
+  Прикрепленные файлы
+  к сообщениям
+end note
+
+
+@enduml

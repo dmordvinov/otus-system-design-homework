@@ -1,0 +1,108 @@
+@startuml
+
+hide empty members
+
+class UserProfile {
+    +userId: UUID
+    +externalId: String
+    +username: String
+    +email: String
+    +firstName: String
+    +lastName: String
+    +avatarFileRef: String
+    +status: UserStatus
+    +presence: PresenceStatus
+    +createdAt: LocalDateTime
+    +updatedAt: LocalDateTime
+}
+
+enum UserStatus {
+
+    ACTIVE,
+    INACTIVE
+}
+
+
+enum PresenceStatus {
+    ONLINE
+    OFFLINE
+    AWAY
+    DO_NOT_DISTURB
+}
+
+class Message {
+    +messageId: UUID
+    +chatId: UUID
+    +senderId: UUID
+    +content: String
+    +contentType: MessageType
+    +timestamp: LocalDateTime
+    +edited: Boolean
+    +editedAt: LocalDateTime
+    +attachments: List<UUID>
+}
+
+class MessageDelivery {
+    +messageId: UUID
+    +userId: UUID
+    +deliveryAt: LocalDateTime
+    +readAt: LocalDateTime
+}
+
+
+enum MessageType {
+    TEXT
+    EMOJI
+    IMAGE
+    FILE
+    SYSTEM
+}
+
+class FileRef {
+
+    +fileId: UUID
+    +fileName: String
+    +fileSize: Long
+    +fileType: String
+    +url: String
+    +uploadedAt: LocalDateTime
+}
+
+class Chat {
+    +chatId: UUID
+    +chatType: ChatType
+    +name: String
+    +description: String
+    +createdBy: UUID
+    +createdAt: LocalDateTime
+    +lastMessageAt: LocalDateTime
+    +members: List<ChatMember>
+    +admins: List<UUID>
+}
+
+enum ChatType {
+    DIRECT
+    GROUP
+    CHANNEL
+}
+
+class ChatMember {
+    +userId: UUID
+    +joinedAt: LocalDateTime
+    +role: MemberRole
+}
+
+enum MemberRole {
+    MEMBER
+    ADMIN
+    OWNER
+}
+
+UserProfile --> Message : отправляет
+Message --> Chat : принадлежит
+Chat --> ChatMember : участники
+ChatMember --> UserProfile : пользователь
+Message --> FileRef : ссылается на
+Chat --> Message : последние сообщения
+
+@enduml

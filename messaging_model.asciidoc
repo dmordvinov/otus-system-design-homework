@@ -19,11 +19,15 @@ class UserProfile {
     +firstName: String
     +lastName: String
     +avatarUrl: String
-    +status: PresenceStatus
+    +status: UserStatus
+    +presence: PresenceStatus
     +createdAt: LocalDateTime
     +updatedAt: LocalDateTime
 }
-
+enum UserStatus {
+    ACTIVE,
+    INACTIVE
+}
 enum PresenceStatus {
     ONLINE
     OFFLINE

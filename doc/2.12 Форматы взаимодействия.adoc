@@ -72,6 +72,90 @@ Response body (`200 OK`)::
 }
 ----
 
+==== gRPC контракт между API Gateway и Chat Service (.proto пример)
+
+Пример синхронного межсервисного взаимодействия для операций отправки и чтения сообщений::
+
+[source,proto]
+----
+syntax = "proto3";
+
+package teambridge.chat.v1;
+
+option go_package = "github.com/teambridge/api/gen/chat/v1;chatv1";
+
+service ChatService {
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+}
+
+message SendMessageRequest {
+  string request_id = 1;          // трассировка и идемпотентность gateway уровня
+  string chat_id = 2;             // UUID v7
+  string sender_id = 3;           // UUID v7
+  string client_message_id = 4;   // UUID v7 - идемпотентность клиентской команды
+  string text = 5;
+  repeated Attachment attachments = 6;
+  repeated string mentions = 7;   // user_id[]
+}
+
+message SendMessageResponse {
+  string message_id = 1;          // UUID v7
+  string chat_id = 2;
+  string sender_id = 3;
+  string text = 4;
+  repeated Attachment attachments = 5;
+  string created_at = 6;          // ISO-8601 UTC
+  MessageStatus status = 7;
+}
+
+message GetMessagesRequest {
+  string request_id = 1;
+  string chat_id = 2;
+  int32 limit = 3;                // max 100
+  string before_message_id = 4;   // cursor pagination
+}
+
+message GetMessagesResponse {
+  repeated Message items = 1;
+  string next_cursor = 2;
+}
+
+message MarkAsReadRequest {
+  string request_id = 1;
+  string chat_id = 2;
+  string user_id = 3;
+  string last_read_message_id = 4;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+  string read_at = 2;             // ISO-8601 UTC
+}
+
+message Message {
+  string message_id = 1;
+  string chat_id = 2;
+  string sender_id = 3;
+  string text = 4;
+  repeated Attachment attachments = 5;
+  string created_at = 6;
+  string edited_at = 7;
+  bool is_deleted = 8;
+}
+
+message Attachment {
+  string file_id = 1;
+}
+
+enum MessageStatus {
+  MESSAGE_STATUS_UNSPECIFIED = 0;
+  MESSAGE_STATUS_ACCEPTED = 1;
+  MESSAGE_STATUS_REJECTED = 2;
+}
+----
+
 ==== WebSocket формат событий
 
 Envelope для всех WS сообщений::

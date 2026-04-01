@@ -79,18 +79,6 @@ entity "files" as files {
   --
 }
 
-entity "message_delivery" as message_delivery {
-  *message_id : UUID <<FK,PK>>
-  *user_id : UUID <<FK,PK>>
-  --
-  delivered_at : TIMESTAMP
-  read_at : TIMESTAMP
-  --
-  INDEX idx_user_id (user_id)
-  INDEX idx_delivered_at (delivered_at)
-  INDEX idx_read_at (read_at)
-}
-
 entity "user_notifications" as user_notifications {
   *notification_id : UUID <<PK>>
   --
@@ -122,38 +110,46 @@ entity "chat_settings" as chat_settings {
   INDEX idx_user_id (user_id)
 }
 
+entity "audit_logs" as audit_logs {
+  *audit_log_id : UUID <<PK>>
+  --
+  *admin_user_id : UUID <<FK,NN>>
+  target_user_id : UUID <<FK>>
+  target_chat_id : UUID <<FK>>
+  target_message_id : UUID <<FK>>
+  *action_type : VARCHAR(50) <<NN>>
+  action_reason : TEXT
+  metadata : JSONB
+  *created_at : TIMESTAMP <<NN>>
+  --
+  INDEX idx_admin_user_id (admin_user_id)
+  INDEX idx_target_user_id (target_user_id)
+  INDEX idx_target_chat_id (target_chat_id)
+  INDEX idx_target_message_id (target_message_id)
+  INDEX idx_action_type (action_type)
+  INDEX idx_created_at (created_at)
+}
+
 ' Relationships
 users ||--o{ chat_members : "участвует"
 chats ||--o{ chat_members : "имеет участников"
-chat_members }o--|| users : "пользователь"
-chat_members }o--|| chats : "чат"
 
 users ||--o{ messages : "отправляет"
 chats ||--o{ messages : "содержит"
-messages }o--|| users : "отправитель"
-messages }o--|| chats : "принадлежит"
 
 messages ||--o{ message_attachments : "имеет вложения"
 files ||--o{ message_attachments : "используется в"
-message_attachments }o--|| messages : "сообщение"
-message_attachments }o--|| files : "файл"
-
-messages ||--o{ message_delivery : "доставка"
-users ||--o{ message_delivery : "получатель"
-message_delivery }o--|| messages : "сообщение"
-message_delivery }o--|| users : "пользователь"
 
 users ||--o{ user_notifications : "получает"
 chats ||--o{ user_notifications : "относится к"
 messages ||--o{ user_notifications : "триггер"
-user_notifications }o--|| users : "пользователь"
-user_notifications }o--|| chats : "чат"
-user_notifications }o--|| messages : "сообщение"
 
 users ||--o{ chat_settings : "настройки"
-chats ||--o{ chat_settings : "для чата"
-chat_settings }o--|| users : "пользователь"
-chat_settings }o--|| chats : "чат"
+chats ||--o{ chat_settings
+
+users ||--o{ audit_logs
+chats ||--o{ audit_logs
+messages ||--o{ audit_logs
 
 ' Enum types as notes
 note right of users
@@ -191,6 +187,16 @@ note right of user_notifications
   - MENTION
   - REPLY
   - SYSTEM
+end note
+
+note right of audit_logs
+  **action_type** enum:
+  - USER_BLOCKED
+  - USER_UNBLOCKED
+  - USER_REMOVED_FROM_CHAT
+  - MESSAGE_DELETED
+  - CHAT_DELETED
+  - CHAT_MEMBER_ROLE_CHANGED
 end note
 
 legend

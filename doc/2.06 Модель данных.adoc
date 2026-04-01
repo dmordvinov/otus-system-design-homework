@@ -1,3 +1,3 @@
 === Модель данных
 
-image::dataModel.png[]
+image::TD7DIiD05CNn_Jp5VO6-W9IWRT6D1H5SYOinEKs6p4SuSrC9qdTN6ciZCLdc_k3yOMwpMceVl36Dgo08dGuI4Dx1R4nkNUmiRP0oXIv5H9LF8z_VnfPjpTJ7QfjyudgTmQChKHJowEf6Dxx721ChS8PsbkslkIFJnp8vJKE8KcsiFPP24DNfSEbu811d8HSqZepc6h98JkQiNbyo-CHqS1vlSfNZSTjOdV_T8sTRO_6mWtT7.png[]

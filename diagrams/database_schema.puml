@@ -1,0 +1,203 @@
+@startuml
+
+hide empty members
+
+!define PRIMARY_KEY PK
+!define FOREIGN_KEY FK
+!define UNIQUE UK
+!define NOT_NULL NN
+
+entity "users" as users {
+  *user_id : UUID <<PK>>
+  --
+  *external_id : VARCHAR(255) <<UK,NN>>
+  *username : VARCHAR(100) <<UK,NN>>
+  *email : VARCHAR(255) <<UK,NN>>
+  *first_name : VARCHAR(100) <<NN>>
+  *last_name : VARCHAR(100) <<NN>>
+  avatar_file_ref : VARCHAR(255)
+  *status : VARCHAR(20) <<NN>>
+  *created_at : TIMESTAMP <<NN>>
+  *updated_at : TIMESTAMP <<NN>>
+  --
+  INDEX idx_external_id (external_id)
+}
+
+entity "chats" as chats {
+  *chat_id : UUID <<PK>>
+  --
+  *chat_type : VARCHAR(20) <<NN>>
+  name : VARCHAR(255)
+  description : TEXT
+  *created_by : UUID <<FK,NN>>
+  *created_at : TIMESTAMP <<NN>>
+  *last_message_at : TIMESTAMP
+  --
+}
+
+entity "chat_members" as chat_members {
+  *chat_id : UUID <<FK,PK>>
+  *user_id : UUID <<FK,PK>>
+  --
+  *joined_at : TIMESTAMP <<NN>>
+  *role : VARCHAR(20) <<NN>>
+  --
+  INDEX idx_user_id (user_id)
+  INDEX idx_chat_id (chat_id)
+}
+
+entity "messages" as messages {
+  *message_id : UUID <<PK>>
+  --
+  *chat_id : UUID <<FK,NN>>
+  *sender_id : UUID <<FK,NN>>
+  *content : TEXT <<NN>>
+  *content_type : VARCHAR(20) <<NN>>
+  *timestamp : TIMESTAMP <<NN>>
+  edited : BOOLEAN <<NN>>
+  edited_at : TIMESTAMP
+  --
+  INDEX idx_chat_id (chat_id)
+  INDEX idx_sender_id (sender_id)
+}
+
+entity "message_attachments" as message_attachments {
+  *message_id : UUID <<FK,PK>>
+  *file_id : UUID <<FK,PK>>
+  --
+  INDEX idx_file_id (file_id)
+}
+
+entity "files" as files {
+  *file_id : UUID <<PK>>
+  --
+  *file_name : VARCHAR(255) <<NN>>
+  *file_size : BIGINT <<NN>>
+  *file_type : VARCHAR(100) <<NN>>
+  *url : VARCHAR(500) <<NN>>
+  *uploaded_at : TIMESTAMP <<NN>>
+  --
+}
+
+entity "message_delivery" as message_delivery {
+  *message_id : UUID <<FK,PK>>
+  *user_id : UUID <<FK,PK>>
+  --
+  delivered_at : TIMESTAMP
+  read_at : TIMESTAMP
+  --
+  INDEX idx_user_id (user_id)
+  INDEX idx_delivered_at (delivered_at)
+  INDEX idx_read_at (read_at)
+}
+
+entity "user_notifications" as user_notifications {
+  *notification_id : UUID <<PK>>
+  --
+  *user_id : UUID <<FK,NN>>
+  *chat_id : UUID <<FK>>
+  *message_id : UUID <<FK>>
+  *notification_type : VARCHAR(50) <<NN>>
+  *created_at : TIMESTAMP <<NN>>
+  delivered : BOOLEAN <<NN>>
+  delivered_at : TIMESTAMP
+  read : BOOLEAN <<NN>>
+  read_at : TIMESTAMP
+  --
+  INDEX idx_user_id (user_id)
+  INDEX idx_chat_id (chat_id)
+  INDEX idx_message_id (message_id)
+  INDEX idx_created_at (created_at)
+}
+
+entity "chat_settings" as chat_settings {
+  *chat_id : UUID <<FK,PK>>
+  *user_id : UUID <<FK,PK>>
+  --
+  muted : BOOLEAN <<NN>>
+  muted_until : TIMESTAMP
+  notify_mentions_only : BOOLEAN <<NN>>
+  notify_on_all_messages : BOOLEAN <<NN>>
+  --
+  INDEX idx_user_id (user_id)
+}
+
+' Relationships
+users ||--o{ chat_members : "участвует"
+chats ||--o{ chat_members : "имеет участников"
+chat_members }o--|| users : "пользователь"
+chat_members }o--|| chats : "чат"
+
+users ||--o{ messages : "отправляет"
+chats ||--o{ messages : "содержит"
+messages }o--|| users : "отправитель"
+messages }o--|| chats : "принадлежит"
+
+messages ||--o{ message_attachments : "имеет вложения"
+files ||--o{ message_attachments : "используется в"
+message_attachments }o--|| messages : "сообщение"
+message_attachments }o--|| files : "файл"
+
+messages ||--o{ message_delivery : "доставка"
+users ||--o{ message_delivery : "получатель"
+message_delivery }o--|| messages : "сообщение"
+message_delivery }o--|| users : "пользователь"
+
+users ||--o{ user_notifications : "получает"
+chats ||--o{ user_notifications : "относится к"
+messages ||--o{ user_notifications : "триггер"
+user_notifications }o--|| users : "пользователь"
+user_notifications }o--|| chats : "чат"
+user_notifications }o--|| messages : "сообщение"
+
+users ||--o{ chat_settings : "настройки"
+chats ||--o{ chat_settings : "для чата"
+chat_settings }o--|| users : "пользователь"
+chat_settings }o--|| chats : "чат"
+
+' Enum types as notes
+note right of users
+  **user_status** enum:
+  - ACTIVE
+  - INACTIVE
+end note
+
+note right of chats
+  **chat_type** enum:
+  - DIRECT
+  - GROUP
+  - CHANNEL
+end note
+
+note right of messages
+  **content_type** enum:
+  - TEXT
+  - EMOJI
+  - IMAGE
+  - FILE
+  - SYSTEM
+end note
+
+note right of chat_members
+  **role** enum:
+  - MEMBER
+  - ADMIN
+  - OWNER
+end note
+
+note right of user_notifications
+  **notification_type** enum:
+  - NEW_MESSAGE
+  - MENTION
+  - REPLY
+  - SYSTEM
+end note
+
+legend
+  PK - Primary Key
+  FK - Foreign Key
+  UK - Unique Key
+  NN - Not Null
+endlegend
+
+@enduml

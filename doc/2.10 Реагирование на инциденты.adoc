@@ -17,9 +17,9 @@
 Примеры алертов::
 * `http_5xx_rate > 5%` 5 минут - P1
 * `ws_active_connections` падение > 40% за 5 минут - P1
-* `message_end_to_end_latency_ms p95 > 200 ms` 10 минут - P2
-* `kafka_consumer_lag > threshold` 10 минут - P2
-* `db_pool_usage > 90%` 10 минут - P2
+* `message_end_to_end_latency_ms p95 > 300 ms` - P2
+* `kafka_consumer_lag > threshold` - P2
+* `db_pool_usage > 90%` - P2
 
 ==== Дашборды
 
@@ -38,6 +38,7 @@
 * Kafka lag и отставание доставки
 * Деградация PostgreSQL (slow queries, saturation)
 * Ошибки SSO/Keycloak
+* Деградации сервисов Chat Service, Search Service, File Service, Notification Service
 
 Для каждого runbook фиксируются::
 * Симптомы и порог срабатывания

@@ -17,9 +17,10 @@ skinparam rectangle {
     [UserProfile] <<entity>>
     [Chat] <<entity>>
     [Message] <<entity>>
-    [MessageDelivery] <<entity>>
+    [UserNotifications] <<entity>>
     [FileRef] <<entity>>
     [ChatMember] <<entity>>
+    [AuditLog] <<entity>>
 
 
 UserProfile --> Message : отправляет
@@ -27,9 +28,13 @@ Message --> Chat : принадлежит
 Chat --> ChatMember : участники
 ChatMember --> UserProfile : пользователь
 Message --> FileRef : ссылается на
-Message --> MessageDelivery: содержит
-MessageDelivery --> UserProfile: ссылается
+Message --> UserNotifications: содержит
+UserNotifications --> UserProfile: ссылается
 Chat --> Message : последние сообщения
+UserProfile --> AuditLog : админ-действие
+AuditLog --> UserProfile : исполнитель
+AuditLog --> Chat : target chat
+AuditLog --> Message : target message
 
 
 note left of [UserProfile]
@@ -54,6 +59,13 @@ end note
 note left of [FileRef]
   Прикрепленные файлы
   к сообщениям
+end note
+
+note left of [AuditLog]
+  Лог действий администратора:
+  блокировка пользователя,
+  удаление участника,
+  удаление сообщения/чата
 end note
 
 

@@ -40,6 +40,9 @@
 ** full backup - ежедневно
 ** WAL archiving - непрерывно
 ** retention backup - не менее 30 дней
+* Требуемые расшираения
+** pg_partman - для управления партициями
+** pg_cron - для запуска партиционирования по расписанию
 
 ==== KeyDB
 
@@ -122,6 +125,81 @@
 
 | Messages| по временному диапозону на основе created_at (monthly) | Сообщения - данные распределенные во времени. Партиционирование по времени позволяет быстро архивировать или удалять старые сообщения разом. Оптимально для запросов последних сообщений
 
+| user_notifications| по временному диапозону на основе created_at (monthly) |
+Нотификации как и сообщения данные распределенные по времени, срок службы которых зависит от самих сообщений
+
 | Audit Logs| по временному диапозону на основе created_at (monthly) | Логи - данные распределенные во времени. Партиционирование по времени позволяет быстро архивировать или удалять старые данные разом. Оптимально для запросов последних сообщений
 
 |===
+
+==== Автоматизация партицирования
+
+Для Автоматизации процессов создания и управления партициями выбрано расширение postgreSQL: pg_partman, что в отличии от ручного режима автоматически создает новые партиции/удаляет старые по расписанию.
+
+
+===== Настройки (Поставляцию и выполняются  DB миграцией сервиса ChatService)
+
+Добавление расширения в отдельную схему
+```sql
+CREATE EXTENSION pg_partman SCHEMA partman;
+```
+Создание родительских таблиц под управлением pg_partman 
+
+```sql
+SELECT partman.create_parent(
+    p_parent_table := 'public.messages',
+    p_control := 'created_at',
+    p_interval := '1 month',
+    p_premake := 3,  -- Создавать партиции на 3 месяца вперед
+    p_automatic := TRUE  -- Автоматически создавать новые партиции
+);
+SELECT partman.create_parent(
+    p_parent_table := 'public.audit_logs',
+    p_control := 'created_at',
+    p_interval := '1 month',
+    p_premake := 3,  -- Создавать партиции на 3 месяца вперед
+    p_automatic := TRUE  -- Автоматически создавать новые партиции
+);
+SELECT partman.create_parent(
+    p_parent_table := 'public.user_notifications',
+    p_control := 'created_at',
+    p_interval := '1 month',
+    p_premake := 3,  -- Создавать партиции на 3 месяца вперед
+    p_automatic := TRUE  -- Автоматически создавать новые партиции
+);
+
+-- Retention для аудита (12 месяцев)
+UPDATE partman.part_config 
+SET retention = '12 months',
+    retention_keep_table = FALSE
+WHERE parent_table := 'public.audit_logs';
+
+-- Retention для messages (12 месяцев)
+UPDATE partman.part_config 
+SET retention = '12 months',
+    retention_keep_table = FALSE
+WHERE parent_table := 'public.messages';
+
+-- Retention для user_notifications (12 месяцев)
+UPDATE partman.part_config 
+SET retention = '12 months',
+    retention_keep_table = FALSE
+WHERE parent_table := 'public.user_notifications';
+```
+
+Выставлем расписание проверки партиций с интервалом каждый день
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Запускать каждый день ночью
+SELECT cron.schedule(
+    'pg_partman_maintenance',
+    '0 0 * * *',
+    $$SELECT partman.run_maintenance();$$
+);
+
+```
+
+
+

@@ -1,0 +1,69 @@
+@startuml
+autonumber
+skinparam maxMessageSize 200
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+actor "Клиент (SPA / Mobile)" as client
+box "Edge" #WhiteSmoke
+participant "API Gateway" as apigw
+participant "WebSocket\nGateway" as wsgw
+end box
+
+box "Internal Network" #F9FFF9
+participant "Keycloak" as keycloak
+participant "TeamBridge Service" as backend
+end box
+
+group 1. Логин (Authorization Code + PKCE)
+    note over client: Генерирует:\n- code_verifier\n- code_challenge = SHA256(code_verifier)
+    
+    client -> apigw: GET /auth/realms/{realm}/protocol/openid-connect/auth\n(client_id, code_challenge, code_challenge_method=S256, redirect_uri)
+    apigw -> keycloak: Проксирование запроса авторизации
+    keycloak --> apigw: 302 Redirect на форму логина
+    apigw --> client: 302 Redirect на форму логина
+    
+    client -> apigw: POST credentials (форма логина)
+    apigw -> keycloak: Проксирование аутентификации
+    keycloak --> apigw: 302 Redirect (auth_code) на redirect_uri
+    apigw --> client: 302 Redirect (auth_code) на redirect_uri
+    
+    client -> apigw: POST /auth/realms/{realm}/protocol/openid-connect/token\n(grant_type=authorization_code, code, code_verifier)
+    apigw -> keycloak: Проксирование обмена кода на токены
+    note over keycloak: Валидация:\nSHA256(code_verifier) == code_challenge
+    keycloak --> apigw: Токены (Access JWT, Refresh, ID)
+    apigw --> client: Возврат токенов
+end
+
+group 2. Получение и кэширование JWKS (асинхронно или при промахе)
+    apigw -> keycloak: GET /auth/realms/{realm}/protocol/openid-connect/certs
+    keycloak --> apigw: Публичные ключи (JWKS)
+    note over apigw: Кэширование JWKS\nв памяти API Gateway
+    
+    wsgw -> keycloak: GET /auth/realms/{realm}/protocol/openid-connect/certs
+    keycloak --> wsgw: Публичные ключи (JWKS)
+    note over wsgw: Кэширование JWKS\nв памяти WS Gateway
+end
+
+group 3. Запросы к API (REST / WebSocket)
+    client -> apigw: HTTP GET/POST /api/resource\nHeader: Authorization: Bearer <Access_JWT>
+    note over apigw: Валидация JWT (offline):\n1. Проверка подписи по JWKS\n2. Проверка 'exp' (срок действия)\n3. Проверка 'iss' и 'aud'
+    apigw -> backend: Проксирование запроса\n(добавление X-User-Id, Roles)
+    backend --> apigw: 200 OK / Data
+    apigw --> client: 200 OK / Data
+    
+    client -> wsgw: WSS Установка соединения\nHeader/Query: Токен
+    note over wsgw: Валидация JWT (offline)
+    wsgw <-> backend: Асинхронные события
+    wsgw --> client: WSS Message
+end
+
+group 4. Refresh токена
+    client -> apigw: POST /auth/realms/{realm}/protocol/openid-connect/token\n(grant_type=refresh_token, refresh_token)
+    apigw -> keycloak: Проксирование запроса
+    note over keycloak: Валидация Refresh токена
+    keycloak --> apigw: Новые Access и Refresh токены
+    apigw --> client: Возврат новых токенов
+end
+
+@enduml

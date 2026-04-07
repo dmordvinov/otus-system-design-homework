@@ -172,19 +172,19 @@ SELECT partman.create_parent(
 UPDATE partman.part_config 
 SET retention = '12 months',
     retention_keep_table = FALSE
-WHERE parent_table := 'public.audit_logs';
+WHERE parent_table = 'public.audit_logs';
 
 -- Retention для messages (12 месяцев)
 UPDATE partman.part_config 
 SET retention = '12 months',
     retention_keep_table = FALSE
-WHERE parent_table := 'public.messages';
+WHERE parent_table = 'public.messages';
 
 -- Retention для user_notifications (12 месяцев)
 UPDATE partman.part_config 
-SET retention = '12 months',
+SET retention = '3 months',
     retention_keep_table = FALSE
-WHERE parent_table := 'public.user_notifications';
+WHERE parent_table = 'public.user_notifications';
 ```
 
 Выставлем расписание проверки партиций с интервалом каждый день

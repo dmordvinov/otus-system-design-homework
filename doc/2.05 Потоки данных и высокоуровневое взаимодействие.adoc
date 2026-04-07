@@ -5,20 +5,20 @@
 | Web/Mobile Client | ApiGateway | REST: HTTPS | Синхронные операции: поиск, CRUD, администрирование, загрузка/чтение файлов
 | Web/Mobile Client | WebSocketGateway | WebSocket (WSS) | Realtime соединение, получение новых сообщений, событий присутствия и обновлений чатов
 | ApiGateway | SearchService | gRPC | Поиск пользователей и сообщений
-| ApiGateway | Keycloak | REST: HTTP | Аутентификация запросов
+| ApiGateway | Keycloak | REST: HTTPS | Аутентификация запросов
 | ApiGateway | ChatService | gRPC | Основной функционал по обмену сообщениями, управлению чатами, группами и администрированию пользователей
 | ApiGateway | FileService | gRPC | Загрузка/Чтение файлов, поиск метаинформации по файлами, генерация ссылок на них
-| WebSocket Gateway | Keycloak | REST: HTTP | Проверка JWT токена при установке и переустановке соединения
+| WebSocket Gateway | Keycloak | REST: HTTPS | Проверка JWT токена при установке и переустановке соединения
 | WebSocket Gateway | ChatService | gRPC | Отправка команд от клиента (создание/редактирование/удаление сообщений) с проверкой прав в Chat Service
 | WebSocket Gateway | KeyDB | TCP | Хранение WS сессий и статуса присутствия пользователей с TTL
 | WebSocket Gateway | Kafka | Kafka |  Новые сообщения от пользователей
 | Kafka | WebSocketGateway | Kafka | Поток  событий для доставки сообщений и обновлений онлайн пользователям
-| FileService | S3 | REST: HTTP | Сохранение/Чтение файлов
+| FileService | S3 | REST: HTTPS | Сохранение/Чтение файлов
 | FileService | PostgreSQL | TCP | Сохранение метаинформации о файлах
 | ChatService | PostgreSQL | TCP | CRUD операции с основными данными
 | ChatService | Kafka | TCP | Публикация доменных событий сообщений и изменений профилей пользователей
 | Kafka | SearchService | TCP | Индексирование сообщений и профилей пользователей
-| ChatService | Keycloak | REST: HTTP | Синхронизация данных пользователей в Keycloak с профилями
+| ChatService | Keycloak | REST: HTTPS | Синхронизация данных пользователей в Keycloak с профилями
 | ApiGateway | NotificationService | gRPC | Управление настройками уведомлений
 | NotificationService | Kafka | Kafka | Чтение сообщений на отпраку клиентам
 | NotificationService | KeyDB | TCP | Чтение активных сессий, чтобы не посылать push уведомления

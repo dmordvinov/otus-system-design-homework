@@ -6,10 +6,10 @@
 
 
 |===
-|Outbounding |Inbounding |Protocol |Descirption
+|Outbounding |Inbounding |Protocol |Description
 | Keycloak | AD/LDAP | LDAP (LDAPS) | Синхронизация корпоративных учетных записей и групп через federation
-| ApiGateway | Keycloak | REST: HTTP | Проверка и обработка аутентификации HTTP запросов
-| WebSocketGateway | Keycloak | REST: HTTP | Проверка JWT токена (по openid configuration/JWKS) при установке WS соединения
-| ChatService | Keycloak | REST: HTTP | Чтение профиля сотрудника и статуса учетной записи (активна/заблокирована)
-| NotificationService| APN/FCM |  REST: HTTP | Отправка уведомлений на устройство пользователя
+| ApiGateway | Keycloak | REST: HTTPS | Проверка и обработка аутентификации HTTP запросов
+| WebSocketGateway | Keycloak | REST: HTTPS | Проверка JWT токена (по openid configuration/JWKS) при установке WS соединения
+| ChatService | Keycloak | REST: HTTPS | Чтение профиля сотрудника и статуса учетной записи (активна/заблокирована)
+| NotificationService| APN/FCM |  REST: HTTPS | Отправка уведомлений на устройство пользователя
 |===

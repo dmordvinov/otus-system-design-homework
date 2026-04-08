@@ -11,7 +11,7 @@ model {
     '
 
     api_gateway = container 'API Gateway' {
-      description 'REST, auth, rate limit'
+      description 'Маршрутизация REST API, Аутентификация (JWT), rate limiting, TLS termination, метрики событий 401/403, логина'
     }
 
     ws_gateway = container 'WebSocket Gateway' {

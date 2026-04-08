@@ -34,6 +34,16 @@ views {
     include infra.vault
   }
 
+  view security {
+    title 'TeamBridge - Схема защиты и управления доступом'
+    include 
+      *,
+      clients.*,
+      
+
+    
+  }
+
   deployment view deploymentViewDev {
     title 'Dev env deployment'
 

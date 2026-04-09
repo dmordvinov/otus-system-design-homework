@@ -3,7 +3,10 @@ views {
     title 'TeamBridge - Landscape'
     include
       *,
-      clients.*
+      clients.*,
+      infra,
+      infra.keycloak,
+      infra.ldap
   }
 
   view context {
